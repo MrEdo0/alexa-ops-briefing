@@ -37,6 +37,21 @@ The MCP server exposes 7 tools (4 read, 3 write-back by voice):
 | `add_followup` | Owner adds a task by voice, it lands in their plan (and Sheet) |
 | `mark_followup_done` | Closes a follow-up by id, by voice |
 
+## Try it live (no setup)
+
+The skill is running as a public MCP endpoint right now:
+
+```bash
+curl -X POST https://superagent-7df9a949.base44.app/functions/dailyOpsBriefingMcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"curl","version":"1.0"}}}'
+```
+
+Then call `tools/list` or `tools/call` (see below). It reads its data live from
+`data/business.json` in this repo, so the README data and the live endpoint
+are always in sync. Point any MCP client at the URL to use it.
+
 ## Run locally
 
 ```bash

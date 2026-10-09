@@ -1,0 +1,132 @@
+{
+  "business": {
+    "name": "Mr Edo Enterprises",
+    "owner_name": "David Moses",
+    "timezone": "Africa/Lagos",
+    "currency": "USD"
+  },
+  "leads": [
+    {
+      "id": "l1",
+      "company": "Matchaeologist",
+      "contact": "Akio",
+      "status": "replied",
+      "last_event": "Asked for pricing; one-time $250 scope sent",
+      "next_step": "Send the six proposed journal topics",
+      "next_step_due": "2026-10-06"
+    },
+    {
+      "id": "l2",
+      "company": "Frostbeard Studio",
+      "contact": "Roxie",
+      "status": "pitched",
+      "last_event": "Sent holiday blog-revival pitch",
+      "next_step": "Bump email",
+      "next_step_due": "2026-10-10"
+    },
+    {
+      "id": "l3",
+      "company": "Bushwick Kitchen",
+      "contact": "Team",
+      "status": "pitched",
+      "last_event": "Sent recipe-revival pitch",
+      "next_step": "Bump email",
+      "next_step_due": "2026-10-10"
+    },
+    {
+      "id": "l4",
+      "company": "Astor Apiaries",
+      "contact": "Nick",
+      "status": "pitched",
+      "last_event": "Sent free-fix + blog revival pitch",
+      "next_step": "Bump email",
+      "next_step_due": "2026-10-10"
+    },
+    {
+      "id": "l5",
+      "company": "Artisan Granola UK",
+      "contact": "Sarah",
+      "status": "no_reply",
+      "last_event": "Pitched, follow-up sent",
+      "next_step": "Final follow-up, then archive",
+      "next_step_due": "2026-10-04"
+    }
+  ],
+  "followups": [
+    {
+      "id": "f1",
+      "what": "Follow up with Matchaeologist if still quiet",
+      "due": "2026-10-06",
+      "done": false
+    },
+    {
+      "id": "f2",
+      "what": "Record the Scale Army intro video",
+      "due": "2026-10-06",
+      "done": false
+    },
+    {
+      "id": "f3",
+      "what": "Upload Gumroad cover images and set launch discounts",
+      "due": "2026-10-07",
+      "done": false
+    }
+  ],
+  "revenue": {
+    "last_7_days": [
+      {
+        "date": "2026-09-28",
+        "sales": 0
+      },
+      {
+        "date": "2026-09-29",
+        "sales": 1,
+        "amount": 12
+      },
+      {
+        "date": "2026-09-30",
+        "sales": 0
+      },
+      {
+        "date": "2026-10-01",
+        "sales": 1,
+        "amount": 6
+      },
+      {
+        "date": "2026-10-02",
+        "sales": 0
+      },
+      {
+        "date": "2026-10-03",
+        "sales": 1,
+        "amount": 9
+      },
+      {
+        "date": "2026-10-04",
+        "sales": 0
+      }
+    ]
+  },
+  "products": [
+    {
+      "name": "ATS-Ready CV + Cover Letter Bundle",
+      "price": 12,
+      "copies_last_7_days": 2
+    },
+    {
+      "name": "Job Hunt Tracker",
+      "price": 8,
+      "copies_last_7_days": 1
+    },
+    {
+      "name": "Interview Prep Question Bank",
+      "price": 6,
+      "copies_last_7_days": 0
+    },
+    {
+      "name": "LinkedIn Optimization Guide",
+      "price": 9,
+      "copies_last_7_days": 1
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 **An Alexa+ Agent Skill (MCP server) that speaks a business owner's daily priorities: lead replies, follow-ups due, revenue, and the top 3 actions for the day.**
 
+The business owner never edits JSON: the briefing can read their own **Google Sheet** (their normal spreadsheet), and they can talk back, log a sale, add a follow-up, close a task, and the data updates.
+
 Built for the **Amazon Developer Hackathon: Build, Ship, Shape** — Alexa+ track. A busy founder says *"Alexa, what's my business briefing?"* and gets a 30-second spoken summary of everything that needs their attention, generated live from their sales pipeline data.
 
 ## Why it matters
@@ -23,7 +25,7 @@ Alexa+  ──(MCP over Streamable HTTP, spec 2025-11-25)──>  Daily Ops Brie
                                                 optional narrative polish)
 ```
 
-The MCP server exposes 5 tools:
+The MCP server exposes 7 tools (4 read, 3 write-back by voice):
 
 | Tool | What it does |
 |---|---|
@@ -31,7 +33,9 @@ The MCP server exposes 5 tools:
 | `get_leads` | Every lead with status and next step |
 | `get_followups` | Open follow-up tasks |
 | `get_revenue_summary` | 7-day sales, revenue, best seller |
-| `mark_followup_done` | Closes a follow-up by id |
+| `log_sale` | Owner says "I just sold a CV bundle" - sale logged, revenue updated |
+| `add_followup` | Owner adds a task by voice, it lands in their plan (and Sheet) |
+| `mark_followup_done` | Closes a follow-up by id, by voice |
 
 ## Run locally
 
@@ -55,6 +59,28 @@ curl -X POST http://localhost:3000/mcp \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_daily_briefing","arguments":{}}}'
 ```
+
+## Connect your own Google Sheet (no JSON editing)
+
+Instead of `data/business.json`, the briefing can read the owner's own spreadsheet. Create a Google Sheet with these tabs (first row = headers):
+
+| Tab | Columns |
+|---|---|
+| `Business` | key, value (name, owner_name, timezone, currency) |
+| `Leads` | id, company, contact, status, last_event, next_step, next_step_due |
+| `Followups` | id, what, due, done |
+| `Revenue` | date, sales, amount |
+| `Products` | name, price, copies_last_7_days |
+
+Then set two environment variables:
+
+```bash
+export GOOGLE_SHEET_ID=1AbC...      # from the Sheet URL
+export GOOGLE_API_KEY=AIza...       # Google Cloud API key with Sheets API enabled
+npm start
+```
+
+Reads pull live from the Sheet (60s cache). Voice writes (`log_sale`, `add_followup`, `mark_followup_done`) write back to the Sheet too when sharing is set to "Anyone with the link can edit"; if write-back fails, the change still lands in the local snapshot and the spoken response says so. No Sheet configured? Everything works on the bundled JSON file.
 
 ## AWS deployment (AWS Builder mini-challenge)
 

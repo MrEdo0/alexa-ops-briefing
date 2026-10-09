@@ -13,7 +13,7 @@
       "status": "replied",
       "last_event": "Asked for pricing; one-time $250 scope sent",
       "next_step": "Send the six proposed journal topics",
-      "next_step_due": "2026-10-06"
+      "next_step_due": "2026-10-09"
     },
     {
       "id": "l2",
@@ -56,53 +56,53 @@
     {
       "id": "f1",
       "what": "Follow up with Matchaeologist if still quiet",
-      "due": "2026-10-06",
+      "due": "2026-10-09",
       "done": false
     },
     {
       "id": "f2",
-      "what": "Record the Scale Army intro video",
-      "due": "2026-10-06",
+      "what": "Record the hackathon demo video",
+      "due": "2026-10-23",
       "done": false
     },
     {
       "id": "f3",
-      "what": "Upload Gumroad cover images and set launch discounts",
-      "due": "2026-10-07",
+      "what": "Send the next outreach batch to Mala the Brand and PERC Coffee",
+      "due": "2026-10-09",
       "done": false
     }
   ],
   "revenue": {
     "last_7_days": [
       {
-        "date": "2026-09-28",
+        "date": "2026-10-03",
         "sales": 0
       },
       {
-        "date": "2026-09-29",
-        "sales": 1,
-        "amount": 12
-      },
-      {
-        "date": "2026-09-30",
-        "sales": 0
-      },
-      {
-        "date": "2026-10-01",
+        "date": "2026-10-04",
         "sales": 1,
         "amount": 6
       },
       {
-        "date": "2026-10-02",
+        "date": "2026-10-05",
         "sales": 0
       },
       {
-        "date": "2026-10-03",
+        "date": "2026-10-06",
+        "sales": 1,
+        "amount": 12
+      },
+      {
+        "date": "2026-10-07",
+        "sales": 0
+      },
+      {
+        "date": "2026-10-08",
         "sales": 1,
         "amount": 9
       },
       {
-        "date": "2026-10-04",
+        "date": "2026-10-09",
         "sales": 0
       }
     ]
@@ -116,12 +116,12 @@
     {
       "name": "Job Hunt Tracker",
       "price": 8,
-      "copies_last_7_days": 1
+      "copies_last_7_days": 0
     },
     {
       "name": "Interview Prep Question Bank",
       "price": 6,
-      "copies_last_7_days": 0
+      "copies_last_7_days": 1
     },
     {
       "name": "LinkedIn Optimization Guide",

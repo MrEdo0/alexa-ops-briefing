@@ -8,6 +8,10 @@
  * Run locally:  npm install && npm start
  * The server listens on PORT (default 3000) at /mcp
  *
+ * Data source: data/business.json by default, or the business owner's own
+ * Google Sheet (set GOOGLE_SHEET_ID + GOOGLE_API_KEY) so they just edit their
+ * normal spreadsheet and Alexa knows.
+ *
  * Optional: set BEDROCK_MODEL to have Amazon Bedrock polish the briefing
  * into an even more natural spoken script (falls back silently otherwise).
  */
@@ -15,24 +19,17 @@ import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { polishBriefing, bedrockEnabled } from "./bedrock-insights.js";
+import { loadData, saveData, sheetsConfigured, sheetWrite, dataSource } from "./data-layer.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_FILE = path.join(__dirname, "..", "data", "business.json");
 const PORT = process.env.PORT || 3000;
-
-const loadData = () => JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-const saveData = (d) => fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2));
 
 /* ---------- Briefing logic (framework-agnostic, also used by Lambda) ---------- */
 
 const spokenDate = (iso) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-export function buildBriefing(data = loadData(), today = new Date().toISOString().slice(0, 10)) {
+export function buildBriefing(data, today = new Date().toISOString().slice(0, 10)) {
   const firstName = (data.business.owner_name || "").split(" ")[0];
   const parts = [];
 
@@ -91,13 +88,61 @@ export function buildBriefing(data = loadData(), today = new Date().toISOString(
   return parts.join("\n\n");
 }
 
+/* ---------- Shared write helpers ---------- */
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+async function addFollowup(what, due) {
+  const data = await loadData();
+  const id = `f${data.followups.length + 1}`;
+  const item = { id, what, due, done: false };
+  data.followups.push(item);
+  saveData(data);
+  const synced = await sheetWrite("append", { tab: "Followups", row: [id, what, due, "FALSE"] });
+  return {
+    content: [{ type: "text", text: `Added "${what}" for ${due}.${synced ? " It's in your Sheet." : ""} I'll remind you when it's due.` }],
+  };
+}
+
+async function logSale(product, amount, sales) {
+  const data = await loadData();
+  const date = todayISO();
+  const existing = data.revenue.last_7_days.find((r) => r.date === date);
+  if (existing) {
+    existing.sales = (existing.sales || 0) + sales;
+    existing.amount = (existing.amount || 0) + amount;
+  } else {
+    data.revenue.last_7_days.push({ date, sales, amount });
+  }
+  const prod = data.products.find((p) => p.name.toLowerCase() === product.toLowerCase());
+  if (prod) prod.copies_last_7_days += sales;
+  saveData(data);
+  const synced = await sheetWrite("append", { tab: "Revenue", row: [date, sales, amount] });
+  return {
+    content: [{
+      type: "text",
+      text: `Logged ${sales} sale${sales === 1 ? "" : "s"} of the ${product} for ${data.business.currency} ${amount} today.${synced ? " Your Sheet is updated." : ""} Nice work.`,
+    }],
+  };
+}
+
+async function markFollowupDone(id) {
+  const data = await loadData();
+  const f = data.followups.find((x) => x.id === id);
+  if (!f) return { content: [{ type: "text", text: `No follow-up found with id ${id}.` }] };
+  f.done = true;
+  saveData(data);
+  await sheetWrite("mark_done", { id });
+  return { content: [{ type: "text", text: `Marked "${f.what}" as done. Well done.` }] };
+}
+
 /* ---------- MCP server ---------- */
 
 function createServer() {
   const server = new McpServer({
     name: "daily-ops-briefing",
-    version: "0.1.0",
-    description: "Speaks a business owner's daily briefing: lead replies, follow-ups due, revenue summary, top actions.",
+    version: "0.2.0",
+    description: "Speaks a business owner's daily briefing: lead replies, follow-ups due, revenue summary, top actions. Voice-first, data lives in the owner's own spreadsheet.",
   });
 
   server.tool(
@@ -105,7 +150,8 @@ function createServer() {
     "Get today's spoken business briefing: lead replies, follow-ups due, revenue summary and top 3 actions.",
     {},
     async () => {
-      const briefing = buildBriefing();
+      const data = await loadData();
+      const briefing = buildBriefing(data);
       const polished = await polishBriefing(briefing);
       return { content: [{ type: "text", text: polished }] };
     }
@@ -116,7 +162,7 @@ function createServer() {
     "List all sales leads with status and next steps.",
     {},
     async () => {
-      const data = loadData();
+      const data = await loadData();
       const text = data.leads
         .map((l) => `${l.company} (${l.contact}) - ${l.status}. Last event: ${l.last_event}. Next: ${l.next_step} due ${l.next_step_due}.`)
         .join("\n");
@@ -129,7 +175,7 @@ function createServer() {
     "List follow-up tasks that are still open.",
     {},
     async () => {
-      const data = loadData();
+      const data = await loadData();
       const open = data.followups.filter((f) => !f.done);
       const text = open.length
         ? open.map((f) => `${f.due}: ${f.what}`).join("\n")
@@ -143,7 +189,7 @@ function createServer() {
     "Get sales and revenue for the last 7 days plus best-selling product.",
     {},
     async () => {
-      const data = loadData();
+      const data = await loadData();
       const week = data.revenue.last_7_days;
       const units = week.reduce((s, r) => s + (r.sales || 0), 0);
       const revenue = week.reduce((s, r) => s + (r.amount || 0), 0);
@@ -161,14 +207,28 @@ function createServer() {
     "mark_followup_done",
     "Mark a follow-up task as done by its id.",
     { id: z.string().describe("The follow-up id, e.g. f1") },
-    async ({ id }) => {
-      const data = loadData();
-      const f = data.followups.find((x) => x.id === id);
-      if (!f) return { content: [{ type: "text", text: `No follow-up found with id ${id}.` }] };
-      f.done = true;
-      saveData(data);
-      return { content: [{ type: "text", text: `Marked "${f.what}" as done. Well done.` }] };
-    }
+    async ({ id }) => markFollowupDone(id)
+  );
+
+  server.tool(
+    "add_followup",
+    "Add a new follow-up task to today's plan, by voice.",
+    {
+      what: z.string().describe("What needs to be done, e.g. 'Send Mala the Brand the revised pitch'"),
+      due: z.string().optional().describe("Due date, YYYY-MM-DD. Defaults to today."),
+    },
+    async ({ what, due }) => addFollowup(what, due || todayISO())
+  );
+
+  server.tool(
+    "log_sale",
+    "Log a sale that just happened, by voice, so the weekly revenue summary stays current.",
+    {
+      product: z.string().describe("Product name as it appears in the product list"),
+      amount: z.number().describe("Sale amount in the business currency"),
+      sales: z.number().optional().describe("Units sold, defaults to 1"),
+    },
+    async ({ product, amount, sales }) => logSale(product, amount, sales || 1)
   );
 
   return server;
@@ -196,7 +256,16 @@ app.post("/mcp", async (req, res) => {
 app.get("/", (req, res) => {
   res.json({
     status: "Daily Ops Briefing MCP server running",
-    tools: ["get_daily_briefing", "get_leads", "get_followups", "get_revenue_summary", "mark_followup_done"],
+    data_source: dataSource(),
+    tools: [
+      "get_daily_briefing",
+      "get_leads",
+      "get_followups",
+      "get_revenue_summary",
+      "mark_followup_done",
+      "add_followup",
+      "log_sale",
+    ],
     bedrock_polish: bedrockEnabled() ? "enabled" : "disabled (template voice)",
   });
 });
@@ -206,6 +275,7 @@ const isDirectRun = process.argv[1] && import.meta.url.endsWith(process.argv[1].
 if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined && isDirectRun) {
   app.listen(PORT, () => {
     console.log(`Daily Ops Briefing MCP server on http://localhost:${PORT}/mcp`);
+    console.log(`Data source: ${dataSource()}`);
   });
 }
 
